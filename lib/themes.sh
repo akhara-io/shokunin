@@ -144,6 +144,41 @@ pill_fg() {
     END { print (minw >= minb ? 15 : 0) }'
 }
 
+# readable_theme NAME FG   print theme NAME with each colour the prompt uses as
+# a pill background (ANSI 1-8) nudged darker or lighter until pill text in
+# ANSI FG reads on it (WCAG contrast 4.5). The hue stays and a colour only moves
+# as far as it has to; colours that already read are left alone. The same
+# colours are text on the terminal background too, so a move never takes one
+# below 3:1 against the background (unless it started there). A first comment
+# line lists what moved.
+readable_theme() {
+  local file
+  file=$(theme_file "$1") || return 1
+  awk -F' *= *' -v fg="$2" "$COLOR_AWK"'
+    function fix(k,   c, f, to, t, nc, floor) {
+      c = pal[k]; f = pal[fg]
+      if (c == "" || f == "" || contrast(c, f) >= 4.5) return
+      to = lum(f) > lum(c) ? "#000000" : "#ffffff"
+      floor = contrast(c, bg) < 3 ? contrast(c, bg) : 3
+      nc = c
+      for (t = 0.05; t < 1; t += 0.05) {
+        if (bg != "" && contrast(blend(c, to, t), bg) < floor) break
+        nc = blend(c, to, t)
+        if (contrast(nc, f) >= 4.5) break
+      }
+      if (nc == c) return
+      out[k] = nc
+      moved = moved (moved == "" ? "" : ", ") k " " c " -> " nc
+    }
+    NR == FNR { if ($1 == "palette") pal[$2] = tolower($3); if ($1 == "background") bg = tolower($2); next }
+    FNR == 1 {
+      for (k = 1; k <= 8; k++) fix(k)
+      if (moved != "") print "# shokunin: for readable prompt pills, adjusted palette " moved
+    }
+    $1 == "palette" && ($2 in out) { print "palette = " $2 "=" out[$2]; next }
+    { print }' "$file" "$file"
+}
+
 # Obsidian CSS snippet: the same palette as Neovim, as Obsidian's theme
 # variables, under .theme-light and .theme-dark; FONT for code blocks.
 gen_obsidian_css() {

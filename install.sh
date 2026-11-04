@@ -223,12 +223,21 @@ EOF
 # setup_theme   everything coloured by the two themes: Ghostty, the prompt
 # pills, tmux and Neovim.
 setup_theme() {
-  local name
-  [[ $SHOKUNIN_PROMPT == pills ]] &&
-    sed "s/@PILL_FG@/$(pill_fg "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME")/g" "$ROOT/config/zsh/p10k-pills.zsh" | put "$HOME/.p10k.zsh"
+  local name fg='' theme moved
+  if [[ $SHOKUNIN_PROMPT == pills ]]; then
+    fg=$(pill_fg "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME")
+    sed "s/@PILL_FG@/$fg/g" "$ROOT/config/zsh/p10k-pills.zsh" | put "$HOME/.p10k.zsh"
+  fi
   ghostty_config | put "$HOME/.config/ghostty/config"
+  # Ghostty prefers these copies to its own. With pills, any colour that would
+  # make a pill hard to read is nudged until it isn't (see readable_theme).
   for name in "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME"; do
-    put "$HOME/.config/ghostty/themes/$name" <"$(theme_file "$name")"
+    if [[ -n $fg ]]; then theme=$(readable_theme "$name" "$fg"); else theme=$(cat "$(theme_file "$name")"); fi
+    printf '%s\n' "$theme" | put "$HOME/.config/ghostty/themes/$name"
+    if [[ $theme == "# shokunin:"* ]]; then
+      moved=${theme%%$'\n'*}; moved=${moved//[^>]/}
+      ui_note "$name: adjusted ${#moved} colour(s) so the prompt pills stay readable"
+    fi
   done
   ui_ok "Ghostty: $SHOKUNIN_FONT $SHOKUNIN_FONT_SIZE, $SHOKUNIN_LIGHT_THEME / $SHOKUNIN_DARK_THEME"
   gen_tmux_theme "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME" | put "$CONFIG_DIR/tmux-theme.conf"
