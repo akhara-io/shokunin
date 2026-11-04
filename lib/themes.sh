@@ -294,9 +294,14 @@ body .callout {
 body .callout.is-collapsed {
   padding-bottom: 0.3em;
 }
-/* Live preview clips embeds on hover, which would cut the title in half. */
-body .markdown-source-view.mod-cm6 .cm-embed-block.cm-callout:hover {
-  overflow: visible;
+/* Live preview paints each embed only inside its own box (contain: paint), and
+   the callout's top margin collapses out of that box, so the title's top half
+   was cut off. Pad the box instead, so the title sits inside it. */
+body .markdown-source-view.mod-cm6 .cm-embed-block.cm-callout {
+  padding-top: 0.9em;
+}
+body .markdown-source-view.mod-cm6 .cm-embed-block.cm-callout .callout {
+  margin-top: 0;
 }
 /* Pull the title up onto the border and paint the page behind it, so the
    frame breaks around the label. */
