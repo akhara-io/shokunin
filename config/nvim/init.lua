@@ -290,8 +290,12 @@ map("n", "<leader>gg", function()
     vim.cmd.startinsert()
   end
 end, { desc = "lazygit" })
-map({ "n", "i" }, "<M-e>", "<Cmd>NvimTreeToggle<CR>", { desc = "File tree" })
-map("n", "<leader>e", "<Cmd>NvimTreeToggle<CR>", { desc = "File tree" })
+-- Opening the tree jumps to the file you're in, so you never have to find it.
+local function toggle_tree()
+  require("nvim-tree.api").tree.toggle({ find_file = true, focus = true })
+end
+map({ "n", "i" }, "<M-e>", toggle_tree, { desc = "File tree" })
+map("n", "<leader>e", toggle_tree, { desc = "File tree" })
 
 -- Diagnostics
 map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Line diagnostics" })
