@@ -1,0 +1,30 @@
+#!/bin/sh
+# daynight [light|dark]   switch the system appearance; with no argument, by
+# the hours chosen in install.sh (light from SHOKUNIN_LIGHT_FROM until
+# SHOKUNIN_DARK_FROM). A LaunchAgent / systemd timer runs it at both times and
+# at login; Ghostty, tmux and nvim follow the system from there.
+PATH=/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin:$PATH
+# shellcheck source=/dev/null
+[ -r "$HOME/.config/shokunin/config" ] && . "$HOME/.config/shokunin/config"
+
+case ${1:-auto} in
+  light | dark) mode=$1 ;;
+  auto)
+    h=$(date +%H) from=${SHOKUNIN_LIGHT_FROM:-7} to=${SHOKUNIN_DARK_FROM:-17}
+    h=${h#0}
+    if [ "${h:-0}" -ge "$from" ] && [ "${h:-0}" -lt "$to" ]; then mode=light; else mode=dark; fi ;;
+  *) echo "usage: daynight [light|dark]" >&2; exit 2 ;;
+esac
+
+if [ "$(uname)" = Darwin ]; then
+  if [ "$mode" = dark ]; then dark=true; else dark=false; fi
+  osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $dark"
+else
+  if [ "$mode" = dark ]; then scheme=prefer-dark; else scheme=default; fi
+  gsettings set org.gnome.desktop.interface color-scheme "$scheme"
+fi
+status=$?
+
+# tmux normally hears it from the terminal; this covers a missed report.
+tmux set -g theme "$mode" 2>/dev/null
+exit $status

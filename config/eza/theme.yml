@@ -1,0 +1,96 @@
+# eza: colours are terminal palette slots (0-15), so they follow Ghostty's
+# light/dark theme instead of being pinned to one. Unset = default text colour.
+#   1 red  2 green  3 yellow  4 blue  5 magenta  6 cyan  8 grey
+
+colourful: true
+
+filekinds:
+  directory: { foreground: "4", is_bold: true }
+  symlink: { foreground: "6" }
+  pipe: { foreground: "3" }
+  block_device: { foreground: "3", is_bold: true }
+  char_device: { foreground: "3", is_bold: true }
+  socket: { foreground: "5", is_bold: true }
+  special: { foreground: "5" }
+  executable: { foreground: "2", is_bold: true }
+  mount_point: { foreground: "4", is_bold: true, is_underline: true }
+
+perms:
+  user_read: { foreground: "3" }
+  user_write: { foreground: "1" }
+  user_execute_file: { foreground: "2", is_bold: true }
+  user_execute_other: { foreground: "2" }
+  group_read: { foreground: "3" }
+  group_write: { foreground: "1" }
+  group_execute: { foreground: "2" }
+  other_read: { foreground: "3" }
+  other_write: { foreground: "1" }
+  other_execute: { foreground: "2" }
+  special_user_file: { foreground: "5" }
+  special_other: { foreground: "5" }
+  attribute: { foreground: "8" }
+
+# Sizes get louder as they grow, so big files jump out when sorted by size
+size:
+  number_byte: { foreground: "8" }
+  number_kilo: { foreground: "8" }
+  number_mega: {}
+  number_giga: { foreground: "3", is_bold: true }
+  number_huge: { foreground: "1", is_bold: true }
+  unit_byte: { foreground: "8" }
+  unit_kilo: { foreground: "8" }
+  unit_mega: { foreground: "8" }
+  unit_giga: { foreground: "3" }
+  unit_huge: { foreground: "1" }
+  major: { foreground: "8" }
+  minor: { foreground: "8" }
+
+users:
+  user_you: { foreground: "8" }
+  user_root: { foreground: "1", is_bold: true }
+  user_other: { foreground: "5" }
+  group_yours: { foreground: "8" }
+  group_root: { foreground: "1" }
+  group_other: { foreground: "5" }
+
+links:
+  normal: { foreground: "6" }
+  multi_link_file: { foreground: "6", is_bold: true }
+
+git:
+  new: { foreground: "2", is_bold: true }
+  modified: { foreground: "3", is_bold: true }
+  deleted: { foreground: "1", is_bold: true }
+  renamed: { foreground: "4" }
+  typechange: { foreground: "5" }
+  ignored: { foreground: "8" }
+  conflicted: { foreground: "1", is_bold: true, is_underline: true }
+
+git_repo:
+  branch_main: { foreground: "2" }
+  branch_other: { foreground: "5" }
+  git_clean: { foreground: "2" }
+  git_dirty: { foreground: "3" }
+
+file_type:
+  image: { foreground: "5" }
+  video: { foreground: "5", is_bold: true }
+  music: { foreground: "6" }
+  lossless: { foreground: "6", is_bold: true }
+  crypto: { foreground: "1" }
+  compressed: { foreground: "3" }
+  temp: { foreground: "8", is_italic: true }
+  compiled: { foreground: "8" }
+  build: { foreground: "3", is_underline: true }
+
+punctuation: { foreground: "8" }
+date: { foreground: "6" }
+inode: { foreground: "8" }
+blocks: { foreground: "8" }
+header: { is_bold: true, is_underline: true }
+octal: { foreground: "3" }
+flags: { foreground: "8" }
+symlink_path: { foreground: "6" }
+control_char: { foreground: "1" }
+broken_symlink: { foreground: "1", is_underline: true }
+broken_path_overlay: { is_underline: true }

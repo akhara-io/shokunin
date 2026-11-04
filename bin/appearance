@@ -1,0 +1,26 @@
+#!/bin/sh
+# appearance [--tmux]   print light or dark: what the system is set to, unless
+# install.sh was told "always light" or "always dark". --tmux also points
+# tmux's theme colours at it (tmux.conf and its appearance hooks call this).
+
+# shellcheck source=/dev/null
+[ -r "$HOME/.config/shokunin/config" ] && . "$HOME/.config/shokunin/config"
+
+case ${SHOKUNIN_SCHEDULE:-system} in
+  light | dark) mode=$SHOKUNIN_SCHEDULE ;;
+  *)
+    if [ "$(uname)" = Darwin ]; then
+      [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" = Dark ] && mode=dark || mode=light
+    else
+      case $(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null) in
+        *dark*) mode=dark ;;
+        *) mode=light ;;
+      esac
+    fi ;;
+esac
+
+if [ "${1:-}" = --tmux ]; then
+  tmux set -g theme "$mode" 2>/dev/null
+else
+  echo "$mode"
+fi
