@@ -124,7 +124,7 @@ vim.api.nvim_create_autocmd("OptionSet", {
   callback = function() vim.cmd.colorscheme("shokunin") end,
 })
 
-require("mini.pairs").setup()
+-- No mini.pairs: typing a quote, backtick or bracket inserts just that one.
 require("mini.surround").setup()
 require("mini.ai").setup()
 require("mini.pick").setup()

@@ -30,29 +30,36 @@ to change your answers. It starts from your previous ones.
 ## What you get
 
 - `Ghostty` with your font and theme pair. It uses a block cursor, left
-  Option acts as Alt, and Cmd+/ opens the cheatsheet.
-- `tmux`: the prefix is Ctrl+Space, and Alt+h/j/k/l moves between panes and
-  Neovim splits. The status bar shows your VPN/HTB address, the current
-  target, and a sun or moon for day or night. `prefix + h` lists every key.
-  A yellow pill shows outdated Homebrew packages (checked every 6 hours); click
-  it or press `prefix + U` to upgrade.
+  <kbd>Option</kbd> acts as <kbd>Alt</kbd>, and <kbd>Cmd</kbd>+<kbd>/</kbd>
+  opens the cheatsheet.
+- `tmux`: the prefix is <kbd>Ctrl</kbd>+<kbd>Space</kbd>, and
+  <kbd>Alt</kbd>+<kbd>h</kbd>/<kbd>j</kbd>/<kbd>k</kbd>/<kbd>l</kbd> moves
+  between panes and Neovim splits. The status bar shows your VPN/HTB address,
+  the current target, and a sun or moon for day or night.
+  <kbd>prefix</kbd> <kbd>h</kbd> lists every key. A yellow pill shows outdated
+  Homebrew packages (checked every 6 hours); click it or press
+  <kbd>prefix</kbd> <kbd>U</kbd> to upgrade.
 - `zsh`: oh-my-zsh, powerlevel10k (pills or lean), autosuggestions and syntax
   highlighting, with a blank line before and after each command's output.
 - `Neovim` 0.12 on its built-in plugin manager, with a colorscheme built from
   your themes:
-  - File tree: nvim-tree. Cmd+E opens and closes it.
-  - Find and search: Cmd+P finds files and Cmd+Shift+F searches inside them
-    (or Space ff / Space fg).
-  - `Git:` lazygit in a popup, with Space gg in Neovim or prefix + g in tmux.
+  - File tree: nvim-tree. <kbd>Cmd</kbd>+<kbd>E</kbd> opens and closes it.
+  - Find and search: <kbd>Cmd</kbd>+<kbd>P</kbd> finds files and
+    <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> searches inside them
+    (or <kbd>Space</kbd> <kbd>f</kbd> <kbd>f</kbd> /
+    <kbd>Space</kbd> <kbd>f</kbd> <kbd>g</kbd>).
+  - `Git:` lazygit in a popup, with <kbd>Space</kbd> <kbd>g</kbd> <kbd>g</kbd>
+    in Neovim or <kbd>prefix</kbd> <kbd>g</kbd> in tmux.
   - Your Obsidian vaults: obsidian.nvim, so you can follow `[[links]]` and
-    search notes (Space oo, os, on, ob, ot).
+    search notes (<kbd>Space</kbd> <kbd>o</kbd> followed by <kbd>o</kbd>,
+    <kbd>s</kbd>, <kbd>n</kbd>, <kbd>b</kbd> or <kbd>t</kbd>).
   - Syntax highlighting: `treesitter`.
   - Language servers and linting: clangd with clang-tidy, OmniSharp,
     PowerShell Editor Services, pyright and ruff, ruby-lsp, and asm-lsp, all
     installed by Mason.
-  - Completion: only when you ask. Tab opens the list or moves down it,
-    Shift+Tab moves up, and Enter accepts. There are no snippets and nothing
-    pops up while you type.
+  - Completion: only when you ask. <kbd>Tab</kbd> opens the list or moves
+    down it, <kbd>Shift</kbd>+<kbd>Tab</kbd> moves up, and <kbd>Enter</kbd>
+    accepts. There are no snippets and nothing pops up while you type.
   - No formatting, ever: nothing reformats your code, and saving doesn't
     trim whitespace or add newlines.
 - `Obsidian`: every vault gets a CSS snippet in the same colours and font,

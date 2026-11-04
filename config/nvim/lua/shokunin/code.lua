@@ -88,11 +88,11 @@ vim.keymap.set("i", "<S-Tab>", function()
   return vim.fn.pumvisible() == 1 and "<C-p>" or "<S-Tab>"
 end, { expr = true, desc = "Previous item" })
 
--- Enter accepts a chosen item; otherwise it's mini.pairs' Enter (splits {}).
+-- Enter accepts a chosen item; otherwise it's a plain newline.
 vim.keymap.set("i", "<CR>", function()
   if vim.fn.pumvisible() == 1 and vim.fn.complete_info({ "selected" }).selected ~= -1 then
     return vim.keycode("<C-y>")
   end
-  return MiniPairs.cr()
+  return vim.keycode("<CR>")
 end, { expr = true, replace_keycodes = false, desc = "Accept / newline" })
 
