@@ -216,7 +216,45 @@ body.theme-dark {
 .markdown-rendered pre {
   padding: 0.9em 1.1em;
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
+  border-radius: 0;
+}
+.markdown-rendered li > pre {
+  margin-block: 0.5em 0.75em;
+}
+body.theme-light,
+body.theme-dark {
+  --code-radius: 0;
+}
+
+/* Code blocks inside a list, in live preview. Each line starts with the
+   list's tabs, and Obsidian paints the background from the page edge and runs
+   the list's guides through the block. Instead: no guides, and the background
+   starts where the code does (one tab per level), less a little padding.
+   Tabs on these lines are widened by that padding so the code isn't flush
+   against the edge, with the cursor in the block or out of it. */
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-list-line {
+  --shokunin-code-pad: 0.75em;
+  --shokunin-code-tab: calc(var(--list-indent) + var(--shokunin-code-pad));
+  --shokunin-code-depth: 1;
+  tab-size: var(--shokunin-code-tab);
+}
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-list-line:has(.cm-indent + .cm-indent) {
+  --shokunin-code-depth: 2;
+}
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-list-line:has(.cm-indent + .cm-indent + .cm-indent) {
+  --shokunin-code-depth: 3;
+}
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-codeblock-bg.HyperMD-list-line {
+  --shokunin-code-start: calc(var(--shokunin-code-depth) * var(--shokunin-code-tab) - var(--shokunin-code-pad));
+  background-color: transparent;
+  background-image: linear-gradient(to right,
+    transparent var(--shokunin-code-start), var(--code-background) var(--shokunin-code-start));
+}
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-list-line .cm-indent {
+  min-width: var(--shokunin-code-tab);
+}
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock.HyperMD-list-line .cm-indent::before {
+  display: none;
 }
 
 /* Keys look like keys: <kbd>Cmd</kbd>+<kbd>P</kbd>. */
