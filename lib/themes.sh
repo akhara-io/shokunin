@@ -234,24 +234,44 @@ body .markdown-source-view kbd {
   box-shadow: inset 0 -2px 0 var(--background-modifier-border);
 }
 
-/* Callouts: GitHub's alert style. A bar in the callout's colour, the title in
-   that colour, and the body in plain text with no tint. --callout-color is a
-   full colour (not an r, g, b list), so Obsidian's own variables do the work. */
+/* Callouts: drawn like a tmux pane, a thin frame with the title set into its
+   top border. Frame and title take the callout's colour; the body is plain
+   text. --callout-color is a full colour (not an r, g, b list), so Obsidian's
+   own variables do most of the work. */
 body.theme-light,
 body.theme-dark {
-  --callout-border-width: 0 0 0 0.25em;
-  --callout-border-opacity: 1;
+  --callout-border-width: 1px;
+  --callout-border-opacity: 0.55;
   --callout-radius: 0;
-  --callout-padding: 0.5em 1em;
+  --callout-padding: 0 1em 0.75em;
   --callout-blend-mode: normal;
   --callout-title-weight: 600;
   --callout-quote: var(--text-muted);
 }
 body .callout {
+  overflow: visible; /* the title sits half outside the frame */
+  margin-block: 1.75em 1.25em;
   background-color: transparent;
 }
+body .callout.is-collapsed {
+  padding-bottom: 0.3em;
+}
+/* Live preview clips embeds on hover, which would cut the title in half. */
+body .markdown-source-view.mod-cm6 .cm-embed-block.cm-callout:hover {
+  overflow: visible;
+}
+/* Pull the title up onto the border and paint the page behind it, so the
+   frame breaks around the label. */
+body .callout-title {
+  width: fit-content;
+  margin-top: calc(var(--line-height-tight) * -0.5em);
+  margin-inline-start: -0.4em;
+  padding: 0 0.4em;
+  align-items: center;
+  background-color: var(--background-primary);
+}
 body .callout-content > :first-child {
-  margin-top: 0.5em;
+  margin-top: 0.4em;
 }
 body .callout-content > :last-child {
   margin-bottom: 0;
