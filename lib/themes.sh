@@ -394,5 +394,32 @@ body .markdown-rendered.show-indentation-guide li > :is(ul, ol)::before {
 .markdown-source-view .cm-table-widget tbody tr:nth-child(2n) {
   background-color: var(--background-primary-alt);
 }
+
+/* Pills for finding severity and status. A Bases formula wraps the value in
+   <span class="shokunin-pill" data-value="critical">; the colour comes from
+   the value. The most urgent value is filled, the rest are tinted. */
+.shokunin-pill {
+  --pill: var(--text-muted);
+  display: inline-block;
+  padding: 0.05em 0.65em;
+  font-size: 0.85em;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--pill);
+  background-color: color-mix(in oklch, var(--pill) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--pill) 40%, transparent);
+  border-radius: 999px;
+}
+.shokunin-pill[data-value="critical"] {
+  --pill: var(--color-red);
+  color: var(--background-primary);
+  background-color: var(--pill);
+  border-color: var(--pill);
+}
+.shokunin-pill:is([data-value="high"], [data-value="needs action"]) { --pill: var(--color-red); }
+.shokunin-pill:is([data-value="medium"], [data-value="retesting"]) { --pill: var(--color-yellow); }
+.shokunin-pill:is([data-value="low"], [data-value="resolved"]) { --pill: var(--color-green); }
+.shokunin-pill[data-value="open"] { --pill: var(--color-blue); }
 EOF
 }
