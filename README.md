@@ -63,7 +63,13 @@ to change your answers. It starts from your previous ones.
   - No formatting, ever: nothing reformats your code, and saving doesn't
     trim whitespace or add newlines.
 - `Obsidian`: every vault gets a CSS snippet in the same colours and font,
-  set to follow the system's light/dark mode.
+  set to follow the system's light/dark mode. Headings step down in size like
+  GitHub's, with a rule under the top level. Callouts look like GitHub's
+  alerts, nested list items branch off a line from their parent, and code,
+  tables and keys are styled to match. Copy `obsidian/Shokunin showcase.md`
+  into a vault to see all of it on one page.
+- Obsidian plugins: Iconize, Calendar and Recent Files, pinned to tested
+  releases. A vault that already has one keeps its own version and settings.
 - `eza` with icons and git status: `l`, `ll`, `lS` (by size), `lm` (by date),
   `lt` (tree).
 - Engagement helpers:

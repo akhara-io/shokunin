@@ -141,7 +141,8 @@ gen_obsidian_css() {
       v("h1-color", blue); v("h2-color", magenta); v("h3-color", cyan)
       v("h4-color", green); v("h5-color", yellow); v("h6-color", dim)
       v("tag-color", cyan); v("tag-background", blend(bg, cyan, 0.12))
-      v("blockquote-border-color", blue); v("checkbox-color", blue); v("checkbox-border-color", dim)
+      v("blockquote-border-color", border); v("checkbox-color", blue); v("checkbox-border-color", dim)
+      v("indentation-guide-color", blend(bg, fg, 0.28)); v("indentation-guide-color-active", blend(bg, fg, 0.5))
       v("code-background", alt); v("code-normal", fg); v("code-comment", dim)
       v("code-keyword", red); v("code-function", blue); v("code-string", green)
       v("code-value", magenta); v("code-property", cyan); v("code-tag", blue)
@@ -151,4 +152,184 @@ gen_obsidian_css() {
       for (i = 1; i <= 8; i++) { v("color-" names[i], hexes[i]); v("color-" names[i] "-rgb", rgb(hexes[i])) }
       print "}"
     }'
+  # Structure is the same for every theme pair. body.theme-* outranks themes
+  # (Maple, Minimal) that set these on plain body, without needing !important.
+  cat <<'EOF'
+
+/* Headings: GitHub's size steps. h1 sits on a hairline rule that starts with
+   a short stroke in the heading's own colour. */
+body.theme-light,
+body.theme-dark {
+  --h1-size: 2em;     --h1-weight: 600; --h1-line-height: 1.25;
+  --h2-size: 1.5em;   --h2-weight: 600; --h2-line-height: 1.25;
+  --h3-size: 1.25em;  --h3-weight: 600;
+  --h4-size: 1em;     --h4-weight: 600;
+  --h5-size: 0.875em; --h5-weight: 600;
+  --h6-size: 0.85em;  --h6-weight: 600;
+
+  --blockquote-border-thickness: 0.25em;
+  --blockquote-color: var(--text-muted);
+  --blockquote-font-style: normal;
+
+  --table-border-width: 1px;
+  --table-border-color: var(--background-modifier-border);
+  --table-header-background: var(--background-primary-alt);
+  --table-header-weight: 600;
+
+  --checklist-done-decoration: line-through;
+  --checklist-done-color: var(--text-muted);
+  --checkbox-radius: 4px;
+
+  --hr-thickness: 2px;
+  --hr-color: var(--background-modifier-border);
+
+  --tag-radius: 999px;
+  --tag-padding-x: 0.55em;
+  --tag-padding-y: 0.1em;
+  --tag-size: 0.85em;
+
+  --link-decoration-thickness: 1px;
+}
+
+.markdown-rendered h1,
+.markdown-source-view.mod-cm6.is-live-preview .HyperMD-header-1 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: linear-gradient(var(--h1-color), var(--h1-color)) left bottom / 3em 3px no-repeat;
+}
+.markdown-rendered :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+/* Quotes line up with callouts: the same bar and the same indent. */
+.markdown-rendered blockquote {
+  padding-inline-start: 1em;
+}
+
+/* Code: inline code gets a frame in reading view; blocks get a ruled box. */
+.markdown-rendered :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+.markdown-rendered pre {
+  padding: 0.9em 1.1em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+/* Keys look like keys: <kbd>Cmd</kbd>+<kbd>P</kbd>. */
+body .markdown-rendered kbd,
+body .markdown-source-view kbd {
+  padding: 0.2em 0.45em;
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  line-height: 1;
+  vertical-align: 0.1em;
+  color: var(--text-normal);
+  background-color: var(--background-primary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--background-modifier-border);
+}
+
+/* Callouts: GitHub's alert style. A bar in the callout's colour, the title in
+   that colour, and the body in plain text with no tint. --callout-color is a
+   full colour (not an r, g, b list), so Obsidian's own variables do the work. */
+body.theme-light,
+body.theme-dark {
+  --callout-border-width: 0 0 0 0.25em;
+  --callout-border-opacity: 1;
+  --callout-radius: 0;
+  --callout-padding: 0.5em 1em;
+  --callout-blend-mode: normal;
+  --callout-title-weight: 600;
+  --callout-quote: var(--text-muted);
+}
+body .callout {
+  background-color: transparent;
+}
+body .callout-content > :first-child {
+  margin-top: 0.5em;
+}
+body .callout-content > :last-child {
+  margin-bottom: 0;
+}
+
+/* Lists: in reading view, nested items hang off a line from their parent's
+   bullet and branch into their own (├ ╰), like a tree. It follows Obsidian's
+   "Indentation guides" setting. Live preview keeps Obsidian's straight guides.
+   Positions come from Obsidian's list layout: bullets sit 0.8em before their
+   item, and its own guide sits at --indentation-guide-reading-indent. */
+body {
+  --shokunin-tree-x: calc(var(--indentation-guide-reading-indent) - var(--list-indent));
+  --shokunin-tree-y: calc(var(--list-spacing) + var(--line-height-normal) * 0.5em);
+  --shokunin-tree-curve: 0.45em;
+}
+body .markdown-rendered.show-indentation-guide li > :is(ul, ol)::before {
+  border-inline-end: none;
+}
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li {
+  --shokunin-trunk-top: 0px;
+  --shokunin-tree-gap: 1.15em; /* where a branch stops, measured back from the item */
+  --shokunin-tree-shift: 0px;  /* moves the trunk left to centre it under the parent's marker */
+  margin-inline-start: var(--list-indent);
+}
+.markdown-rendered.show-indentation-guide ol > li > :is(ul, ol) > li {
+  --shokunin-tree-shift: 0.45em; /* under the number, not its full stop */
+}
+.markdown-rendered.show-indentation-guide li.task-list-item > :is(ul, ol) > li {
+  --shokunin-tree-shift: 0.15em; /* under the middle of the checkbox */
+}
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li:first-child {
+  /* Reach back up to the parent's bullet. */
+  --shokunin-trunk-top: calc(var(--line-height-normal) * -0.5em + 0.35em);
+}
+.markdown-rendered.show-indentation-guide li > ol > li {
+  --shokunin-tree-gap: 1.75em; /* stop short of the number */
+}
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li.task-list-item {
+  --shokunin-tree-gap: 1.7em; /* stop short of the checkbox */
+}
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li::before,
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border: 0 solid var(--indentation-guide-color);
+}
+/* The trunk runs the whole item, so it meets the next sibling's. */
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li::before {
+  inset-inline-start: calc(var(--shokunin-tree-x) - var(--shokunin-tree-shift));
+  top: var(--shokunin-trunk-top);
+  bottom: 0;
+  border-inline-start-width: var(--indentation-guide-width);
+}
+/* The branch into the bullet. */
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li::after {
+  inset-inline-start: calc(var(--shokunin-tree-x) - var(--shokunin-tree-shift));
+  top: calc(var(--shokunin-tree-y) - var(--indentation-guide-width));
+  width: calc(var(--list-indent) - var(--indentation-guide-reading-indent) - var(--shokunin-tree-gap) + var(--shokunin-tree-shift));
+  border-top-width: var(--indentation-guide-width);
+}
+/* The last item's trunk stops at its bullet and curves into the branch. */
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li:last-child::before {
+  bottom: auto;
+  width: var(--shokunin-tree-curve);
+  height: calc(var(--shokunin-tree-y) - var(--shokunin-trunk-top));
+  border-bottom-width: var(--indentation-guide-width);
+  border-end-start-radius: var(--shokunin-tree-curve);
+}
+.markdown-rendered.show-indentation-guide li > :is(ul, ol) > li:last-child::after {
+  inset-inline-start: calc(var(--shokunin-tree-x) - var(--shokunin-tree-shift) + var(--shokunin-tree-curve));
+  width: calc(var(--list-indent) - var(--indentation-guide-reading-indent) - var(--shokunin-tree-gap) + var(--shokunin-tree-shift) - var(--shokunin-tree-curve));
+}
+
+/* Tables: ruled cells, a shaded header and alternate rows. */
+.markdown-rendered tbody tr:nth-child(2n),
+.markdown-source-view .cm-table-widget tbody tr:nth-child(2n) {
+  background-color: var(--background-primary-alt);
+}
+EOF
 }

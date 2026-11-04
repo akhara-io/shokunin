@@ -99,7 +99,7 @@ ask_everything() {
   ui_confirm SHOKUNIN_ENGAGEMENT "Engagement helpers (target, lhost, VPN pill, clip)" "$( ((SHOKUNIN_ENGAGEMENT)) && echo y || echo n)"
   ui_confirm SHOKUNIN_DOTNET "C# and PowerShell support in Neovim (.NET + pwsh, ~770 MB)" "$( ((SHOKUNIN_DOTNET)) && echo y || echo n)"
   if [[ -n $(obsidian_vaults) ]]; then
-    ui_confirm SHOKUNIN_OBSIDIAN "Theme your Obsidian vaults to match" "$( ((SHOKUNIN_OBSIDIAN)) && echo y || echo n)"
+    ui_confirm SHOKUNIN_OBSIDIAN "Theme your Obsidian vaults to match and add Iconize, Calendar and Recent Files" "$( ((SHOKUNIN_OBSIDIAN)) && echo y || echo n)"
   else
     SHOKUNIN_OBSIDIAN=0
   fi
@@ -205,29 +205,65 @@ obsidian_vaults() {
   done
 }
 
-# A CSS snippet in each vault, switched on with "Adapt to system" so Obsidian
-# goes light and dark with everything else. A running Obsidian rewrites
-# appearance.json from memory, so then it's two clicks instead.
+# Community plugins every vault gets: id, GitHub repo, and the release that's
+# been tested with this setup. Default settings live in obsidian/plugins/<id>/.
+OBSIDIAN_PLUGINS=(
+  "obsidian-icon-folder FlorianWoelki/obsidian-iconize 2.14.7"
+  "calendar liamcain/obsidian-calendar-plugin 1.5.10"
+  "recent-files-obsidian tgrosinger/recent-files-obsidian 1.7.10"
+)
+
+# obsidian_plugins VAULT   install the plugins the vault doesn't have yet.
+# A plugin that's already there keeps its own version and settings.
+obsidian_plugins() {
+  local vault=$1 spec id repo version dir file tmp defaults
+  for spec in "${OBSIDIAN_PLUGINS[@]}"; do
+    read -r id repo version <<<"$spec"
+    dir=$vault/.obsidian/plugins/$id
+    [[ -f $dir/manifest.json ]] && continue
+    if [[ -n ${DRY_RUN:-} ]]; then ui_skip "would install $id $version into $(pretty "$vault")"; continue; fi
+    tmp=$(mktemp -d)
+    for file in main.js manifest.json styles.css; do
+      curl -fsL -o "$tmp/$file" "https://github.com/$repo/releases/download/$version/$file" ||
+        [[ $file == styles.css ]] || { ui_warn "couldn't download $id $version; skipped"; rm -rf "$tmp"; continue 2; }
+    done
+    for file in main.js manifest.json styles.css; do
+      [[ -s $tmp/$file ]] && put "$dir/$file" <"$tmp/$file"
+    done
+    rm -rf "$tmp"
+    defaults=$ROOT/obsidian/plugins/$id/data.json
+    [[ -f $defaults ]] && put "$dir/data.json" <"$defaults"
+  done
+}
+
+# A CSS snippet and the plugins in each vault, switched on with "Adapt to
+# system" so Obsidian goes light and dark with everything else. A running
+# Obsidian rewrites its settings from memory, so then it's a few clicks instead.
 setup_obsidian() {
-  local vault css settings running='' count=0
+  local vault css settings ids running='' count=0
   ((SHOKUNIN_OBSIDIAN)) || return 0
   css=$(gen_obsidian_css "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME" "$(font_field "$SHOKUNIN_FONT" 2)")
+  ids=$(printf '%s\n' "${OBSIDIAN_PLUGINS[@]}" | awk '{print $1}' | jq -R . | jq -sc .)
   pgrep -xi obsidian >/dev/null && running=1
   while IFS= read -r vault; do
     [[ -d $vault/.obsidian ]] || continue
     printf '%s\n' "$css" | put "$vault/.obsidian/snippets/shokunin.css"
+    obsidian_plugins "$vault"
     if [[ -z $running ]]; then
       settings=$vault/.obsidian/appearance.json
       { cat "$settings" 2>/dev/null || echo '{}'; } |
         jq '.theme = "system" | .enabledCssSnippets = ((.enabledCssSnippets // []) + ["shokunin"] | unique)' |
         put "$settings"
+      settings=$vault/.obsidian/community-plugins.json
+      { cat "$settings" 2>/dev/null || echo '[]'; } | jq --argjson ids "$ids" '. + ($ids - .)' | put "$settings"
     fi
     count=$((count + 1))
   done < <(obsidian_vaults)
-  ui_ok "Obsidian: $count vault(s) themed"
+  ui_ok "Obsidian: $count vault(s) themed, with Iconize, Calendar and Recent Files"
   if [[ -n $running ]]; then
     ui_note "Obsidian is open, so switch it on there: Settings → Appearance → turn on the"
     ui_note "\"shokunin\" CSS snippet, and set Base color scheme to \"Adapt to system\"."
+    ui_note "Then Settings → Community plugins → turn on Iconize, Calendar and Recent Files."
   fi
 }
 
