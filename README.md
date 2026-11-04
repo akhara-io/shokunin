@@ -11,11 +11,13 @@ git clone https://github.com/akhara-io/shokunin ~/.local/share/shokunin
 
 The installer asks a few questions:
 
-- a theme for the day and one for the evening, with a live preview of each
+- a theme for the day and one for the evening, from every theme Ghostty ships
+  (around 800), with a live preview of each. Type to search the list.
 - when to switch between them
 - a font and its size
 - the prompt style
 - whether to auto-start tmux and turn on the engagement helpers
+- which Obsidian vaults to theme. Ones you say no to are left alone from then on.
 
 Then it installs the software and sets everything up. Run it again at any time
 to change your answers. It starts from your previous ones.
@@ -25,6 +27,7 @@ to change your answers. It starts from your previous ones.
 | `--yes`         | Take the defaults (or your previous answers) without asking |
 | `--dry-run`     | Show what would change, change nothing                      |
 | `--no-packages` | Configs only; you install the software                      |
+| `--theme`       | Change only the light and dark themes, and recolour to match |
 | `--uninstall`   | Remove what shokunin made and restore your old files        |
 
 ## What you get

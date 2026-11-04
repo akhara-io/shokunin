@@ -2,10 +2,18 @@
 # Themes: find Ghostty theme files, preview them, and turn the light/dark pair
 # into tmux colours, an nvim palette and a prompt pill text colour.
 
-LIGHT_THEMES=("Shokunin" "Modus Operandi Tinted" "Catppuccin Latte" "Rose Pine Dawn" "GitHub Light Default"
+# Picks shown first in each list. load_themes adds every other theme after them.
+LIGHT_PICKS=("Shokunin" "Modus Operandi Tinted" "Catppuccin Latte" "Rose Pine Dawn" "GitHub Light Default"
   "TokyoNight Day" "Everforest Light Med" "Gruvbox Light" "Flexoki Light" "Kanagawa Lotus")
-DARK_THEMES=("Shokunin Night" "Modus Vivendi Tinted" "Catppuccin Mocha" "Rose Pine" "GitHub Dark Default"
+DARK_PICKS=("Shokunin Night" "Modus Vivendi Tinted" "Catppuccin Mocha" "Rose Pine" "GitHub Dark Default"
   "TokyoNight" "Everforest Dark Hard" "Gruvbox Dark" "Flexoki Dark" "Kanagawa Wave" "Nord")
+LIGHT_THEMES=("${LIGHT_PICKS[@]}")
+DARK_THEMES=("${DARK_PICKS[@]}")
+
+# Where themes live, in lookup order: shokunin's own, Ghostty's bundled
+# collection (macOS, then Linux), then your own.
+THEME_DIRS=("$ROOT/themes" /Applications/Ghostty.app/Contents/Resources/ghostty/themes
+  /usr/share/ghostty/themes "$HOME/.config/ghostty/themes")
 
 # Colour maths for awk: WCAG contrast and linear blends of #rrggbb.
 COLOR_AWK='
@@ -22,11 +30,41 @@ function blend(a, b, t,   i, out) {
 
 theme_file() {
   local dir
-  for dir in "$ROOT/themes" /Applications/Ghostty.app/Contents/Resources/ghostty/themes \
-    /usr/share/ghostty/themes "$HOME/.config/ghostty/themes"; do
+  for dir in "${THEME_DIRS[@]}"; do
     [[ -f $dir/$1 ]] && { printf '%s\n' "$dir/$1"; return; }
   done
   return 1
+}
+
+# load_themes   fill LIGHT_THEMES and DARK_THEMES with every usable theme: the
+# picks first, then the rest A-Z. Usable means a background, a foreground and
+# all 16 colours, which the tmux, Neovim and prompt colours are built from. A
+# theme is light when its background is.
+load_themes() {
+  local dir kind name seen
+  local files=()
+  for dir in "${THEME_DIRS[@]}"; do
+    [[ -d $dir ]] && for name in "$dir"/*; do [[ -f $name ]] && files+=("$name"); done
+  done
+  LIGHT_THEMES=("${LIGHT_PICKS[@]}") DARK_THEMES=("${DARK_PICKS[@]}")
+  seen=$'\n'$(printf '%s\n' "${LIGHT_PICKS[@]}" "${DARK_PICKS[@]}")$'\n'
+  ((${#files[@]})) || return 0
+  while IFS=$'\t' read -r kind name; do
+    [[ $seen == *$'\n'"$name"$'\n'* ]] && continue
+    seen+="$name"$'\n'
+    if [[ $kind == light ]]; then LIGHT_THEMES+=("$name"); else DARK_THEMES+=("$name"); fi
+  done < <(awk -F' *= *' "$COLOR_AWK"'
+    function flush(   name) {
+      if (file == "") return
+      name = file; sub(/.*\//, "", name)
+      if (bg ~ /^#[0-9a-fA-F]{6}$/ && fg ~ /^#[0-9a-fA-F]{6}$/ && n >= 16)
+        printf "%s\t%s\n", (lum(bg) > 0.25 ? "light" : "dark"), name
+    }
+    FNR == 1 { flush(); file = FILENAME; bg = fg = ""; n = 0; split("", got) }
+    $1 == "background" { bg = $2 }
+    $1 == "foreground" { fg = $2 }
+    $1 == "palette" && $3 ~ /^#[0-9a-fA-F]{6}$/ && !($2 in got) { got[$2]; n++ }
+    END { flush() }' "${files[@]}" | sort -f -t$'\t' -k2)
 }
 
 # theme_palette FILE   one line: bg fg selection ansi0 ... ansi15

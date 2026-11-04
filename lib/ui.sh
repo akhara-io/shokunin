@@ -32,24 +32,41 @@ _ui_cursor() { [[ -t 1 ]] && printf '\e[?25%s' "$1"; }  # h = show, l = hide
 _ui_restore() { _ui_cursor h; stty echo 2>/dev/null; }
 
 # Read one key into $1: up, down, enter, quit, or the character itself.
+# _ui_key VAR [typing]   read one key: up, down, enter, quit, or the character.
+# With "typing", letters stay letters (j/k/q don't move or quit), Backspace is
+# "backspace" and a lone Esc is "escape".
 _ui_key() {
   local k rest
   IFS= read -rsn1 k
   if [[ $k == $'\e' ]]; then
     IFS= read -rsn2 -t 1 rest
-    case $rest in '[A' | OA) k=up ;; '[B' | OB) k=down ;; *) k=quit ;; esac
+    case $rest in
+      '[A' | OA) k=up ;;
+      '[B' | OB) k=down ;;
+      '') [[ -n ${2:-} ]] && k=escape || k=quit ;;
+      *) k=quit ;;
+    esac
   fi
-  case $k in '') k=enter ;; k) k=up ;; j) k=down ;; q | $'\x03') k=quit ;; esac
+  case $k in
+    '') k=enter ;;
+    $'\x03') k=quit ;;
+    $'\x7f' | $'\b') k=backspace ;;
+    k | j | q) [[ -z ${2:-} ]] && case $k in k) k=up ;; j) k=down ;; q) k=quit ;; esac ;;
+  esac
   printf -v "$1" '%s' "$k"
 }
 
 # ui_choose VAR "question" DEFAULT_INDEX PREVIEW_FN ITEM...
 #   Arrow-key menu; stores the chosen item in VAR. PREVIEW_FN (or '') is
 #   called with the highlighted item and prints lines shown under the list.
+#   A list longer than UI_ROWS scrolls, and typing narrows it down.
+UI_ROWS=12
 ui_choose() {
   local __var=$1 question=$2 sel=$3 preview=$4
   shift 4
   local items=("$@") n=$# i key out extra nl
+  local search=$((n > UI_ROWS)) filter='' current top=0 rows lines nocase=''
+  local shown=()
 
   if ! ui_interactive; then
     printf -v "$__var" '%s' "${items[sel]}"
@@ -57,34 +74,68 @@ ui_choose() {
     return
   fi
 
-  printf '  %s?%s %s%s%s  %s↑↓ move · enter select%s\n' "${CYAN}" "${RESET}" "${BOLD}" "$question" "${RESET}" "${DIM}" "${RESET}"
+  if ((search)); then
+    printf '  %s?%s %s%s%s  %stype to search · ↑↓ move · enter select%s\n' "${CYAN}" "${RESET}" "${BOLD}" "$question" "${RESET}" "${DIM}" "${RESET}"
+  else
+    printf '  %s?%s %s%s%s  %s↑↓ move · enter select%s\n' "${CYAN}" "${RESET}" "${BOLD}" "$question" "${RESET}" "${DIM}" "${RESET}"
+  fi
+  shopt -q nocasematch && nocase=1
+  shopt -s nocasematch
+  current=${items[sel]}
   _ui_cursor l
   trap '_ui_restore; exit 130' INT
   while :; do
-    out=''
+    # The items matching what's typed, keeping the highlight on the same one.
+    shown=() sel=0
     for ((i = 0; i < n; i++)); do
-      if ((i == sel)); then out+="    ${CYAN}❯ ${BOLD}${items[i]}${RESET}"$'\n'
-      else out+="      ${items[i]}"$'\n'; fi
+      [[ -z $filter || ${items[i]} == *"$filter"* ]] || continue
+      [[ ${items[i]} == "$current" ]] && sel=${#shown[@]}
+      shown+=("${items[i]}")
     done
+    rows=${#shown[@]}
+    ((rows > UI_ROWS)) && rows=$UI_ROWS
+    ((sel < top)) && top=$sel
+    ((sel >= top + rows)) && top=$((sel - rows + 1))
+    ((top > ${#shown[@]} - rows)) && top=$((${#shown[@]} - rows))
+    ((top < 0)) && top=0
+
+    out='' lines=0
+    if ((search)); then
+      out+="    ${DIM}search${RESET} ${filter}${DIM}▏ ${#shown[@]} of $n${RESET}"$'\n'
+      lines=1
+    fi
+    for ((i = top; i < top + rows; i++)); do
+      if ((i == sel)); then out+="    ${CYAN}❯ ${BOLD}${shown[i]}${RESET}"$'\n'
+      else out+="      ${shown[i]}"$'\n'; fi
+      lines=$((lines + 1))
+    done
+    if ((${#shown[@]} == 0)); then
+      out+="      ${DIM}nothing matches; Backspace to widen${RESET}"$'\n'
+      lines=$((lines + 1))
+    fi
     extra=''
-    [[ -n $preview ]] && extra=$("$preview" "${items[sel]}")$'\n'
+    ((${#shown[@]})) && [[ -n $preview ]] && extra=$("$preview" "${shown[sel]}")$'\n'
     printf '%s%s' "$out" "$extra"
     nl=${extra//[^$'\n']/}
 
-    _ui_key key
+    if ((search)); then _ui_key key typing; else _ui_key key; fi
     case $key in
-      up) sel=$(((sel - 1 + n) % n)) ;;
-      down) sel=$(((sel + 1) % n)) ;;
-      enter) break ;;
+      up) ((${#shown[@]})) && current=${shown[(sel - 1 + ${#shown[@]}) % ${#shown[@]}]} ;;
+      down) ((${#shown[@]})) && current=${shown[(sel + 1) % ${#shown[@]}]} ;;
+      enter) ((${#shown[@]})) && { current=${shown[sel]}; break; } ;;
+      backspace) filter=${filter%?} ;;
+      escape) if [[ -n $filter ]]; then filter=''; else _ui_restore; printf '\n'; exit 130; fi ;;
       quit) _ui_restore; printf '\n'; exit 130 ;;
+      *) ((search)) && [[ ${#key} == 1 && $key == [[:print:]] ]] && filter+=$key ;;
     esac
-    printf '\e[%dA\e[J' $((n + ${#nl}))
+    printf '\e[%dA\e[J' $((lines + ${#nl}))
   done
-  printf '\e[%dA\e[J' $((n + ${#nl} + 1))
+  printf '\e[%dA\e[J' $((lines + ${#nl} + 1))
+  [[ -z $nocase ]] && shopt -u nocasematch
   trap - INT
   _ui_cursor h
-  printf -v "$__var" '%s' "${items[sel]}"
-  _ui_answered "$question" "${items[sel]}"
+  printf -v "$__var" '%s' "$current"
+  _ui_answered "$question" "$current"
 }
 
 # ui_confirm VAR "question" y|n   stores 1 or 0 in VAR.

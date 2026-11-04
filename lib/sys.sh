@@ -65,7 +65,7 @@ config_write() {
   local var
   {
     echo "# shokunin choices. Re-run install.sh to change them."
-    for var in SCHEDULE LIGHT_FROM DARK_FROM LIGHT_THEME DARK_THEME FONT FONT_SIZE PROMPT ENGAGEMENT TMUX_AUTOSTART DOTNET OBSIDIAN; do
+    for var in SCHEDULE LIGHT_FROM DARK_FROM LIGHT_THEME DARK_THEME FONT FONT_SIZE PROMPT ENGAGEMENT TMUX_AUTOSTART DOTNET OBSIDIAN OBSIDIAN_SKIP; do
       var=SHOKUNIN_$var
       printf "%s='%s'\n" "$var" "$(printf '%s' "${!var}" | sed "s/'/'\\\\''/g")"
     done

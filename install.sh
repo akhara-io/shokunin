@@ -8,6 +8,7 @@
 #   ./install.sh --yes           take the defaults, or your previous answers
 #   ./install.sh --dry-run       show what would change, change nothing
 #   ./install.sh --no-packages   configs only; install the software yourself
+#   ./install.sh --theme         change only the light and dark themes
 #   ./install.sh --uninstall     remove what shokunin made, restore your backups
 set -uo pipefail
 
@@ -23,12 +24,13 @@ source "$ROOT/lib/packages.sh"
 
 usage() { sed -n '2,/^set /{/^set /d;s/^# \{0,1\}//;p;}' "$0"; }
 
-ASSUME_YES='' DRY_RUN='' PACKAGES=1 UNINSTALL=''
+ASSUME_YES='' DRY_RUN='' PACKAGES=1 UNINSTALL='' THEME_ONLY=''
 while (($#)); do
   case $1 in
     -y | --yes) ASSUME_YES=1 ;;
     -n | --dry-run) DRY_RUN=1 ;;
     --no-packages) PACKAGES='' ;;
+    --theme) THEME_ONLY=1 ;;
     --uninstall) UNINSTALL=1 ;;
     -h | --help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
@@ -52,14 +54,30 @@ ask() {
   ui_choose "$var" "$question" "$(index_of "$def" "$@")" "$preview" "$@"
 }
 
-ask_everything() {
-  # Previous answers become the defaults.
+# load_answers   previous answers, with defaults for any that are missing.
+load_answers() {
   # shellcheck source=/dev/null
   [[ -r $CONFIG_DIR/config ]] && source "$CONFIG_DIR/config"
   : "${SHOKUNIN_LIGHT_THEME:=Shokunin}" "${SHOKUNIN_DARK_THEME:=Shokunin Night}"
   : "${SHOKUNIN_SCHEDULE:=time}" "${SHOKUNIN_LIGHT_FROM:=7}" "${SHOKUNIN_DARK_FROM:=17}"
   : "${SHOKUNIN_FONT:=Maple Mono}" "${SHOKUNIN_FONT_SIZE:=16}" "${SHOKUNIN_PROMPT:=pills}"
   : "${SHOKUNIN_ENGAGEMENT:=1}" "${SHOKUNIN_TMUX_AUTOSTART:=1}" "${SHOKUNIN_DOTNET:=1}" "${SHOKUNIN_OBSIDIAN:=1}"
+  : "${SHOKUNIN_OBSIDIAN_SKIP=}"
+}
+
+# ask_themes   the light and dark pickers, over every usable theme. Only the
+# ones the schedule actually shows are asked.
+ask_themes() {
+  load_themes
+  [[ $SHOKUNIN_SCHEDULE != dark ]] &&
+    ask SHOKUNIN_LIGHT_THEME "Light theme" "$SHOKUNIN_LIGHT_THEME" theme_preview "${LIGHT_THEMES[@]}"
+  [[ $SHOKUNIN_SCHEDULE != light ]] &&
+    ask SHOKUNIN_DARK_THEME "Dark theme" "$SHOKUNIN_DARK_THEME" theme_preview "${DARK_THEMES[@]}"
+  return 0
+}
+
+ask_everything() {
+  load_answers   # previous answers become the defaults
 
   ui_section "Look"
   local schedules=("Light by day, dark after hours" "Follow the system setting" "Always light" "Always dark")
@@ -78,12 +96,7 @@ ask_everything() {
   [[ $SHOKUNIN_SCHEDULE == light ]] && current=$SHOKUNIN_LIGHT_THEME
   [[ $SHOKUNIN_SCHEDULE == dark ]] && current=$SHOKUNIN_DARK_THEME
   ask choice "Themes" "Use $current" '' "Use $current" "Choose themes"
-  if [[ $choice == "Choose themes" ]]; then
-    [[ $SHOKUNIN_SCHEDULE != dark ]] &&
-      ask SHOKUNIN_LIGHT_THEME "Light theme" "$SHOKUNIN_LIGHT_THEME" theme_preview "${LIGHT_THEMES[@]}"
-    [[ $SHOKUNIN_SCHEDULE != light ]] &&
-      ask SHOKUNIN_DARK_THEME "Dark theme" "$SHOKUNIN_DARK_THEME" theme_preview "${DARK_THEMES[@]}"
-  fi
+  [[ $choice == "Choose themes" ]] && ask_themes
 
   local fonts=()
   while IFS= read -r choice; do fonts+=("$choice"); done < <(font_names)
@@ -100,9 +113,32 @@ ask_everything() {
   ui_confirm SHOKUNIN_DOTNET "C# and PowerShell support in Neovim (.NET + pwsh, ~770 MB)" "$( ((SHOKUNIN_DOTNET)) && echo y || echo n)"
   if [[ -n $(obsidian_vaults) ]]; then
     ui_confirm SHOKUNIN_OBSIDIAN "Theme your Obsidian vaults to match and add Iconize, Calendar and Recent Files" "$( ((SHOKUNIN_OBSIDIAN)) && echo y || echo n)"
+    ((SHOKUNIN_OBSIDIAN)) && ask_vaults
   else
     SHOKUNIN_OBSIDIAN=0
   fi
+}
+
+# vault_skipped PATH   true for a vault you've said to leave alone.
+vault_skipped() { [[ $'\n'$SHOKUNIN_OBSIDIAN_SKIP == *$'\n'"$1"$'\n'* ]]; }
+
+# ask_vaults   which vaults to theme. A no is remembered in
+# SHOKUNIN_OBSIDIAN_SKIP (one path per line), so later runs, --yes and
+# --theme leave that vault alone too.
+ask_vaults() {
+  local vault ok vaults=()
+  while IFS= read -r vault; do [[ -d $vault/.obsidian ]] && vaults+=("$vault"); done < <(obsidian_vaults)
+  for vault in "${vaults[@]}"; do
+    ui_confirm ok "  Theme the \"${vault##*/}\" vault ($(pretty "$vault"))" "$(vault_skipped "$vault" && echo n || echo y)"
+    if ((ok)); then
+      vault_skipped "$vault" && SHOKUNIN_OBSIDIAN_SKIP=$(printf '%s' "$SHOKUNIN_OBSIDIAN_SKIP" | grep -vxF "$vault")$'\n'
+    else
+      vault_skipped "$vault" || SHOKUNIN_OBSIDIAN_SKIP+="$vault"$'\n'
+    fi
+  done
+  SHOKUNIN_OBSIDIAN_SKIP=$(printf '%s' "$SHOKUNIN_OBSIDIAN_SKIP" | grep -v '^$')$'\n'
+  [[ $SHOKUNIN_OBSIDIAN_SKIP == $'\n' ]] && SHOKUNIN_OBSIDIAN_SKIP=''
+  return 0
 }
 
 # ─── setup steps ─────────────────────────────────────────────────────────────
@@ -165,11 +201,8 @@ source ~/.config/zsh/init.zsh
 
 # Your own additions go below.
 EOF
-  if [[ $SHOKUNIN_PROMPT == pills ]]; then
-    sed "s/@PILL_FG@/$(pill_fg "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME")/g" "$ROOT/config/zsh/p10k-pills.zsh" | put "$HOME/.p10k.zsh"
-  else
-    put "$HOME/.p10k.zsh" <"$ROOT/config/zsh/p10k-lean.zsh"
-  fi
+  # Pills take their text colour from the themes, so setup_theme writes them.
+  [[ $SHOKUNIN_PROMPT == pills ]] || put "$HOME/.p10k.zsh" <"$ROOT/config/zsh/p10k-lean.zsh"
   ui_ok ".zshrc and a $SHOKUNIN_PROMPT prompt"
 
   # macOS Ghostty also reads Application Support, which would override ours.
@@ -182,17 +215,66 @@ EOF
       fi
     done
   fi
+  setup_theme
+  config_write
+  setup_obsidian
+}
+
+# setup_theme   everything coloured by the two themes: Ghostty, the prompt
+# pills, tmux and Neovim.
+setup_theme() {
+  local name
+  [[ $SHOKUNIN_PROMPT == pills ]] &&
+    sed "s/@PILL_FG@/$(pill_fg "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME")/g" "$ROOT/config/zsh/p10k-pills.zsh" | put "$HOME/.p10k.zsh"
   ghostty_config | put "$HOME/.config/ghostty/config"
   for name in "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME"; do
     put "$HOME/.config/ghostty/themes/$name" <"$(theme_file "$name")"
   done
   ui_ok "Ghostty: $SHOKUNIN_FONT $SHOKUNIN_FONT_SIZE, $SHOKUNIN_LIGHT_THEME / $SHOKUNIN_DARK_THEME"
-
   gen_tmux_theme "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME" | put "$CONFIG_DIR/tmux-theme.conf"
   gen_nvim_palette "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME" | put "$CONFIG_DIR/palette.lua"
+  ui_ok "tmux, Neovim and prompt colours generated from your themes"
+}
+
+# obsidian_recolour   rewrite the snippet in the vaults that already have it,
+# so vaults you've kept shokunin out of stay that way.
+obsidian_recolour() {
+  local vault css count=0
+  ((SHOKUNIN_OBSIDIAN)) || return 0
+  css=$(gen_obsidian_css "$SHOKUNIN_LIGHT_THEME" "$SHOKUNIN_DARK_THEME" "$(font_field "$SHOKUNIN_FONT" 2)")
+  while IFS= read -r vault; do
+    [[ -f $vault/.obsidian/snippets/shokunin.css ]] || continue
+    vault_skipped "$vault" && continue
+    printf '%s\n' "$css" | put "$vault/.obsidian/snippets/shokunin.css"
+    count=$((count + 1))
+  done < <(obsidian_vaults)
+  ((count)) && ui_ok "Obsidian: $count vault(s) recoloured"
+  return 0
+}
+
+# change_theme   --theme: pick new light and dark themes and recolour what
+# follows them, leaving everything else as it is.
+change_theme() {
+  [[ -r $CONFIG_DIR/config ]] || die "shokunin isn't set up here yet; run ./install.sh first"
+  load_answers
+  ui_section "Themes"
+  ask_themes
+  if ui_interactive; then
+    local ok
+    printf '\n'
+    ui_confirm ok "Switch to these themes" y
+    ((ok)) || { ui_note "Nothing changed."; exit 0; }
+  fi
+  ui_section "Colours"
+  setup_theme
+  obsidian_recolour
   config_write
-  ui_ok "tmux and Neovim colours generated from your themes"
-  setup_obsidian
+  if [[ -z ${DRY_RUN:-} ]] && tmux info >/dev/null 2>&1; then
+    tmux source-file "$HOME/.config/tmux/tmux.conf" >/dev/null 2>&1 && ui_ok "Reloaded the running tmux"
+  fi
+  printf '\n  %s%sThemes changed.%s\n\n' "${BOLD}" "${GREEN}" "${RESET}"
+  ui_note "Ghostty: press Cmd+Shift+, to reload, or open a new window. Neovim picks it up on restart."
+  printf '\n'
 }
 
 # Every vault Obsidian knows about (macOS, Linux, Flatpak).
@@ -247,6 +329,7 @@ setup_obsidian() {
   pgrep -xi obsidian >/dev/null && running=1
   while IFS= read -r vault; do
     [[ -d $vault/.obsidian ]] || continue
+    vault_skipped "$vault" && continue
     printf '%s\n' "$css" | put "$vault/.obsidian/snippets/shokunin.css"
     obsidian_plugins "$vault"
     if [[ -z $running ]]; then
@@ -403,6 +486,7 @@ main() {
   mkdir -p "$STATE_DIR"
 
   if [[ -n $UNINSTALL ]]; then uninstall; return; fi
+  if [[ -n $THEME_ONLY ]]; then change_theme; return; fi
 
   ask_everything
 
